@@ -1,0 +1,10 @@
+ultralytics>=8.3.0      # YOLO11 / YOLOv8 training, validation, tracking
+lapx>=0.5.5             # needed by ByteTrack / BoT-SORT
+opencv-python>=4.8
+numpy>=1.24
+scipy>=1.10             # spline centre-line fitting
+pillow>=10.0            # GIF export
+matplotlib>=3.7
+pyyaml>=6.0
+tqdm>=4.65
+pytest>=7.0             # optional: run the unit tests

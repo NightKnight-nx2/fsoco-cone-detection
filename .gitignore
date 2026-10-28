@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+data/
+runs/
+outputs/
+weights/*.pt
+*.pt
+*.onnx
+*.engine
+*.raw.mp4
+.pytest_cache/
+.ipynb_checkpoints/
+*.log
+# keep README assets
+!docs/

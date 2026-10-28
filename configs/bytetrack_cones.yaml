@@ -1,0 +1,10 @@
+# ByteTrack settings tuned for cone tracking (see Ultralytics tracker docs for all keys).
+# Cones are static in the world but the camera moves quickly, so the buffer is kept short
+# enough to avoid re-using IDs for different cones, and the matching threshold is permissive.
+tracker_type: bytetrack
+track_high_thresh: 0.30   # first association threshold
+track_low_thresh: 0.10    # second association (low-confidence boxes keep tracks alive)
+new_track_thresh: 0.35    # min score to start a new track
+track_buffer: 30          # frames to keep a lost track
+match_thresh: 0.8         # IoU matching threshold
+fuse_score: True
