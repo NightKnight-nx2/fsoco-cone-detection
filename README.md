@@ -13,7 +13,7 @@ fine-tune etme → değerlendirme → video üzerinde çıkarım → çok-nesne 
 | ![detection](docs/demo_detection.gif) | ![tracking](docs/demo_tracking.gif) |
 
 > **Demo klipleri gerçek görüntü değil, Unity simülasyonudur.** Ham ön-kamera kareleri (960×540, 10 Hz), ayrı bir Unity koni-pisti
-> simülasyonundan (`[perception_control_loop](https://github.com/NightKnight-nx2/perception-control-loop)` projem) alındı. Model **yalnızca gerçek FSOCO fotoğraflarıyla** eğitildi, simülasyon
+> simülasyonundan ([perception_control_loop](https://github.com/NightKnight-nx2/perception-control-loop) projem) alındı. Model **yalnızca gerçek FSOCO fotoğraflarıyla** eğitildi, simülasyon
 > görüntülerinde hiç fine-tune edilmedi; yani klipler aynı zamanda modelin sentetik alana nasıl aktarıldığını da gösterir
 > (konilerin çoğunu buluyor, ama yakındaki bazı konileri kaçırıyor ve uzaktakiler gürültülü).
 
