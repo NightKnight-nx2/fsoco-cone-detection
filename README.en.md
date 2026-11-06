@@ -13,7 +13,7 @@ model → evaluation → video inference → multi-object tracking → track cen
 | ![detection](docs/demo_detection.gif) | ![tracking](docs/demo_tracking.gif) |
 
 > **The demo clips are a Unity simulation, not real footage.** They are raw front-camera frames (960×540, 10 Hz) from a separate
-> Unity cone-track simulation (my `perception_control_loop` project). The detector was trained **only on real FSOCO photos**
+> Unity cone-track simulation (my `[perception_control_loop](https://github.com/NightKnight-nx2/perception-control-loop)` project). The detector was trained **only on real FSOCO photos**
 > and was never fine-tuned on simulated images, so these clips also show how it transfers to a synthetic domain
 > (it detects most cones, but nearby cones are sometimes missed and far cones are noisy).
 
