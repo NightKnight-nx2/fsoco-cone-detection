@@ -36,7 +36,7 @@ def main() -> None:
     ap.add_argument("--tracker", default=str(Path(__file__).parent / "configs" / "bytetrack_cones.yaml"),
                     help="tracker yaml; use 'botsort.yaml' for BoT-SORT")
     ap.add_argument("--imgsz", type=int, default=640)
-    ap.add_argument("--conf", type=float, default=0.3)
+    ap.add_argument("--conf", type=float, default=0.25)
     ap.add_argument("--iou", type=float, default=0.5)
     ap.add_argument("--device", default="auto")
     ap.add_argument("--fps", type=float, default=30.0, help="output fps for image folders")
@@ -85,11 +85,11 @@ def main() -> None:
                             alpha = k / len(pts)
                             col = tuple(int(c * (0.35 + 0.65 * alpha)) for c in CLASS_COLORS_BGR[cls[i]])
                             cv2.line(frame, pts[k - 1], pts[k], col, 2, cv2.LINE_AA)
-                if a.lane:
+                draw_detections(frame, xyxy, cls, conf, ids)
+                if a.lane:  # drawn last so the top-down inset covers the boxes beneath it
                     h, w = frame.shape[:2]
                     frame = draw_lane(frame, estimate_centerline(xyxy, cls, (w, h), fx=a.fx))
-                draw_detections(frame, xyxy, cls, conf, ids)
-                put_hud(frame, f"frame {n} | {len(ids)} tracked | {len(first_seen)} unique IDs")
+                put_hud(frame, f"frame {n} | {len(ids)} tracked")
             sink.write(frame)
             n += 1
             if a.max_frames and n >= a.max_frames:

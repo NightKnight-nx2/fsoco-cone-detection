@@ -12,8 +12,10 @@ fine-tune etme → değerlendirme → video üzerinde çıkarım → çok-nesne 
 |:--:|:--:|
 | ![detection](docs/demo_detection.gif) | ![tracking](docs/demo_tracking.gif) |
 
-> Yukarıdaki GIF/görseller `make_readme_assets.py` ile gerçek bir eğitim koşusu sonrasında üretilir.
-> Bu README yazıldığı anda `docs/` klasöründe sadece bir `.gitkeep` yer tutucusu bulunuyor.
+> **Demo klipleri gerçek görüntü değil, Unity simülasyonudur.** Ham ön-kamera kareleri (960×540, 10 Hz), ayrı bir Unity koni-pisti
+> simülasyonundan (`perception_control_loop` projem) alındı. Model **yalnızca gerçek FSOCO fotoğraflarıyla** eğitildi, simülasyon
+> görüntülerinde hiç fine-tune edilmedi; yani klipler aynı zamanda modelin sentetik alana nasıl aktarıldığını da gösterir
+> (konilerin çoğunu buluyor, ama yakındaki bazı konileri kaçırıyor ve uzaktakiler gürültülü).
 
 ## Mimari
 
@@ -29,6 +31,7 @@ flowchart LR
 
 ## Özellikler
 
+- **`import_roboflow.py`** – Roboflow YOLOv8 export'unu içe alır (sınıf eşleme, takım bazlı yeniden split).
 - **`data_prep.py`** – FSOCO'nun Supervisely JSON formatını Ultralytics YOLO formatına çevirir; takım
   bazlı split (kare sızıntısı yok), tag filtreleme, yeniden boyutlandırma, etiket-üstü önizlemeler,
   nadir sınıflar için opsiyonel tekrar-faktörü (oversampling).
@@ -62,26 +65,24 @@ flowchart LR
 
 ## Sonuçlar
 
-> ⚠️ **Eğitim durumu: tamamlanmadı, nihai bir benchmark değil.** Depoda bulunan
-> `runs/fsoco_mono_yolo11n/` koşusu 100 epoch için ayarlanmıştı (`args.yaml`: `epochs: 100`), ama bu
-> README yazıldığı anda sadece **2 epoch** loglanmıştı (`results.csv`'de 2 veri satırı var). Aşağıdaki
-> tablo bu iki gerçek, loglanmış epoch'u gösteriyor — bu erken-eğitim anlık görüntüsüdür, yakınsamış bir
-> model DEĞİLDİR.
-
-| Epoch | Precision | Recall | mAP50 | mAP50-95 |
-|---|---|---|---|---|
-| 1 | 0.819 | 0.346 | 0.382 | 0.226 |
-| 2 (son loglanan) | 0.826 | 0.378 | 0.417 | 0.246 |
-
-*(Kaynak: `runs/fsoco_mono_yolo11n/results.csv`.)*
-
-`runs/detect/runs/smoke/`, `tools/make_synthetic_fsoco.py` ile üretilen **sentetik** koni görselleri
-üzerinde ayrı, 2 epoch'luk bir duman testidir; bu projenin kendi kuralıyla uyumlu olarak ("sentetik veri
-üzerindeki metrikler anlamsızdır – asla raporlamayın") bu sayılar yukarıda kasıtlı olarak hariç
-tutulmuştur.
-
 <!-- METRICS_START -->
-_Tam eğitim metrikleri henüz üretilmedi._
+YOLO11n, 100 epoch, 640 px, `fsoco_mono` alt kümesiyle eğitildi ([Kullanılan veri seti](#sonuçlarda-kullanılan-veri-seti)).
+**Ayrılmış test split'i** (eğitimde hiç görülmemiş takımlardan 1.065 görsel): **mAP50 0.787, mAP50-95 0.491** (4 sınıf ortalaması).
+RTX 4050 Laptop GPU'da görsel başına: 4.8 ms model + 1.8 ms ön işleme + 1.5 ms son işleme (batch 16).
+
+| Sınıf | Precision | Recall | AP50 | AP50-95 |
+|---|---:|---:|---:|---:|
+| blue_cone | 0.882 | 0.841 | 0.875 | 0.516 |
+| yellow_cone | 0.879 | 0.877 | 0.893 | 0.538 |
+| orange_cone | 0.657 | 0.600 | 0.603 | 0.358 |
+| large_orange_cone | 0.968 | 0.659 | 0.776 | 0.553 |
+| **tümü (4 sınıf)** | **0.846** | **0.744** | **0.787** | **0.491** |
+
+Açıkça belirtilmesi gerekenler:
+
+- **`unknown_cone` test split'inde değerlendirilemedi** – ayrılan takımların hiçbirinde yok (toplamda 254 eğitim, 53 doğrulama kutusu). Doğrulama split'inde AP50'si 0.015; yani model bu sınıfı fiilen algılamıyor. Dedektörü 4 sınıflı koni dedektörü olarak değerlendirin.
+- Skorlar hangi takımların ayrıldığına güçlü biçimde bağlı: doğrulama split'i (788 görsel, `unknown_cone` dahil 5 sınıf) mAP50 0.544 / mAP50-95 0.331 veriyor. Checkpoint doğrulama split'ine göre seçildi; test split'i yalnızca bir kez kullanıldı.
+- Zayıf noktalar (confusion matrix'e bakın): küçük turuncu konilerin yaklaşık %31'i kaçırılıyor (küçük, uzak sıralar) ve büyük turuncu konilerin yaklaşık %23'ü küçük turuncu olarak etiketleniyor.
 <!-- METRICS_END -->
 
 | Confusion matrix (normalize) | Örnek tahminler |
@@ -102,10 +103,12 @@ konilerin taban noktalarından düşük dereceli bir polinom (veya smoothing spl
 (`Z = fx·H/h_px`), bu da yaklaşık kuşbakışı görünümü sağlar. Bu, kalibre edilmemiş tek bir kameradan
 **tahmindir**, metrik bir zemin gerçeği değildir.
 
+(Görsel, Unity klibinden tek bir kare; `--fx 652` = sim kamerasının 540 px yükseklikte 45° dikey görüş açısına karşılık gelen odak uzaklığı. Unity koni boyutunun 325 mm'lik FSG konisi olduğu varsayıldı, yani kuşbakışı görünümdeki metre değerleri yaklaşık. Görüntü üzerindeki sarı/mavi eğriler polinom fit'idir ve görüntü kenarında kıvrılabilir; ikisinden kuşbakışı görünüm daha güvenilirdir.)
+
 ## Kurulum ve hızlı başlangıç
 
 ```bash
-git clone https://github.com/<kullanici-adiniz>/fsoco-cone-detection.git
+git clone https://github.com/NightKnight-nx2/fsoco-cone-detection.git
 cd fsoco-cone-detection
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -113,10 +116,35 @@ python check_gpu.py                                    # CUDA görünüyor mu? �
 ```
 
 Windows'ta NVIDIA GPU varsa önce PyTorch'un CUDA sürümünü kurun
-(`pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124`), sonra kalanını.
+(`pip uninstall -y torch torchvision`, ardından `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128`; CUDA etiketini <https://pytorch.org/get-started/locally/> sayfasından seçin), sonra kalanını.
 GPU yoksa [Colab notebook](notebooks/colab_train.ipynb)'u (ücretsiz T4) kullanın.
 
 `requirements.txt`, AGPL-3.0 lisanslı `ultralytics>=8.3.0`'ı çeker (bkz. **Lisans** bölümü).
+
+## Sonuçlarda kullanılan veri seti
+
+Yukarıdaki sayılar tam 24 GB'lık FSOCO sürümüyle değil, topluluk Roboflow export'u
+[`cvcs2025/fsoco_mono`](https://universe.roboflow.com/cvcs2025/fsoco_mono) (MIT, 5.930 görsel, 14 takım, 5 sınıf) ile üretildi.
+Dosya adları FSOCO takım önekleri taşıyor, yani FSOCO'dan türemiş görünüyor, ancak Roboflow sayfası bunu söylemiyor; FSOCO'ya da atıf yapın.
+Görseller zaten siyah dolgulu 640 px'e küçültülmüş ve bazıları orijinal FSOCO takım filigranını taşıyor.
+
+```bash
+# Roboflow "YOLOv8" export'u data/ içine açılmış olmalı
+python import_roboflow.py --src data/fsoco_mono.v1i.yolov8 --out data/fsoco_mono_yolo --oversample
+python train.py --data data/fsoco_mono_yolo/data.yaml --epochs 100 --batch 16 --cache ram --name fsoco_mono_yolo11n
+python evaluate.py --weights runs/fsoco_mono_yolo11n/weights/best.pt --data data/fsoco_mono_yolo/data.yaml --split test
+```
+
+`import_roboflow.py`, Roboflow'un alfabetik sınıf sırasını bu deponun sırasına çevirir ve **takım bazında** yeniden böler (orijinal export kareleri rastgele böldüğü için neredeyse aynı kareler sızıyordu).
+
+| Kutular | train | val | test |
+|---|---:|---:|---:|
+| görsel | 4.077 | 788 | 1.065 |
+| blue_cone | 28.180 | 2.478 | 4.823 |
+| yellow_cone | 32.036 | 5.660 | 4.787 |
+| orange_cone | 10.079 | 3.807 | 2.226 |
+| large_orange_cone | 1.713 | 306 | 1.362 |
+| unknown_cone | 254 | 53 | 0 |
 
 ## Adım 1 – FSOCO'yu edinme (manuel)
 
@@ -259,8 +287,8 @@ tests/test_pipeline.py
 
 ## Kısıtlar / sonraki adımlar
 
-- Gerçek FSOCO verisi üzerinde eğitim henüz tamamlanmadı (bkz. Sonuçlar) — buradaki sayılar devam
-  eden bir çalışmadır.
+- **Takip en zayıf halka.** ByteTrack kutuları IoU ile eşleştirir; koniler küçük olduğundan Unity klibinin 10 Hz'inde kutular kareler arasında neredeyse hiç örtüşmüyor ve izler parçalanıyor: 300 karelik demoda 137 iz ID'si, ortalama iz uzunluğu 43 kare (62 iz ≥ 30 kare); varsayılan ByteTrack ayarlarıyla 190 ID / ortalama 19 kareydi. Daha yüksek kare hızı ya da hareket-telafili bir takipçi yardımcı olur (kamera-hareketi telafili BoT-SORT burada *daha kötüydü*: 120 karelik testte 168 ID, ortalama 3.5 kare).
+- Dedektör `unknown_cone`'u tanımıyor ve bu sınıfta test edilmedi (bkz. Sonuçlar).
 - Kesilmiş veya devrilmiş konilerdeki kutular gürültülü etiketlerdir; `--exclude-tags` deneyin.
 - Orta çizgi, zamansal yumuşatma olmadan kare başına fit edilir; kuşbakışı mod düzeyli bir kamera ve
   bilinen bir odak uzaklığı varsayar.
